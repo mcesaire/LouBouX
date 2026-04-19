@@ -1,0 +1,38 @@
+{
+  "name": "Notre Maison",
+  "short_name": "Notre Maison",
+  "description": "Gérez votre maison ensemble",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F5F0E8",
+  "theme_color": "#C17B3C",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23C17B3C'/><text y='130' x='96' text-anchor='middle' font-size='110'>🏠</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23C17B3C'/><text y='360' x='256' text-anchor='middle' font-size='300'>🏠</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Tâches",
+      "url": "./index.html#tasks",
+      "description": "Voir les tâches"
+    },
+    {
+      "name": "Courses",
+      "url": "./index.html#shopping",
+      "description": "Liste de courses"
+    }
+  ]
+}
