@@ -1221,12 +1221,23 @@ function saveConfig(){
   const gid = g('cfg-gist-id').value.trim();
   const tok = g('cfg-token').value.trim();
   if(!gid || !tok){toast('⚠️ Les deux champs sont requis');return;}
-  CFG = {gistId:gid, token:tok};
+  CFG = {gistId:gid, token:tok, username:''};
   saveCfg();
   toast('⏳ Test de la connexion…');
-  gistPull().then(ok=>{
-    if(ok){toast('✅ Connexion réussie ! Synchronisation active.');updateSyncUI();startAutoSync();}
-    else{toast('❌ Connexion échouée. Vérifie ton Gist ID et token.');}
+  // Fetch gist to validate AND get owner username for raw URL
+  fetch(`https://api.github.com/gists/${gid}`,{
+    headers:{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json'}
+  }).then(r=>{
+    if(!r.ok)throw new Error('bad');
+    return r.json();
+  }).then(data=>{
+    CFG.username = data.owner?.login || '';
+    saveCfg();
+    toast('✅ Connexion réussie ! Synchronisation active.');
+    updateSyncUI();
+    startAutoSync();
+  }).catch(()=>{
+    toast('❌ Connexion échouée. Vérifie ton Gist ID et token.');
   });
 }
 
@@ -1280,25 +1291,44 @@ function apiUrl(url){
 async function gistPull(){
   if(!isConfigured())return false;
   try{
-    // Use raw URL with cache-busting to bypass GitHub's aggressive Gist caching
     const bust = Date.now();
-    const rawUrl = `https://gist.githubusercontent.com/raw/${CFG.gistId}/${GIST_FILE}?_=${bust}`;
-    const res = await fetch(rawUrl, {cache:'no-store'});
-    if(!res.ok){
-      // Fallback to API if raw fails (e.g. gist is empty)
-      if(res.status === 404) return true;
-      return false;
+    let res, text;
+
+    // Use raw URL (no cache, no auth needed) if we have the username
+    if(CFG.username){
+      const rawUrl = `https://gist.githubusercontent.com/${CFG.username}/${CFG.gistId}/raw/${GIST_FILE}?_=${bust}`;
+      res = await fetch(rawUrl, {cache:'no-store'});
+      if(res.ok){
+        text = await res.text();
+      } else if(res.status === 404){
+        return true; // gist is empty, that's fine
+      } else {
+        res = null; // fall through to API
+      }
     }
-    const text = await res.text();
-    if(!text || !text.trim()) return true; // empty gist, ok
+
+    // Fallback: use the API (may be cached by GitHub ~30s)
+    if(!text){
+      const apiRes = await fetch(`https://api.github.com/gists/${CFG.gistId}`,{
+        headers:{'Authorization':'token '+CFG.token,'Accept':'application/vnd.github.v3+json'}
+      });
+      if(!apiRes.ok) return false;
+      const data = await apiRes.json();
+      const file = data.files[GIST_FILE];
+      if(!file || !file.content) return true;
+      text = file.content;
+    }
+
+    if(!text || !text.trim()) return true;
     let remote;
     try{ remote = JSON.parse(text); }catch(e){ return false; }
     if(!remote || typeof remote !== 'object') return true;
+
     const localTs = S._ts || 0;
     const remoteTs = remote._ts || 0;
     if(remoteTs >= localTs && remoteTs > 0){
       const dark = S.dark;
-      S = Object.assign(S, remote);
+      S = Object.assign({}, S, remote);
       S.dark = dark;
       saveLocal();
       const activePage = document.querySelector('.page.active');
@@ -1308,6 +1338,7 @@ async function gistPull(){
           inventory:renderInv,contacts:renderContacts,history:renderHistory,stats:renderStats})[name]?.();
       }
       renderNBadge();
+      return true;
     }
     return true;
   }catch(e){ return false; }
