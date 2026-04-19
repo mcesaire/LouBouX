@@ -799,7 +799,16 @@ function save(){
     });
   }
 }
-function load(){try{const s=localStorage.getItem('NM4');if(s)S={...S,...JSON.parse(s)};}catch(e){}}
+function load(){
+  try{
+    const s=localStorage.getItem('NM4');
+    if(s){
+      const parsed=JSON.parse(s);
+      // Full replace, not shallow merge — preserves arrays correctly
+      S=Object.assign(S, parsed);
+    }
+  }catch(e){}
+}
 
 // ── DARK MODE ────────────────────────────────────────────────
 function toggleDark(){S.dark=!S.dark;applyDark();save();}
@@ -1272,28 +1281,29 @@ async function gistPull(){
   if(!isConfigured())return false;
   try{
     const res=await fetch(apiUrl(`https://api.github.com/gists/${CFG.gistId}`),{
-      headers:{'Authorization':'token '+CFG.token,'Accept':'application/vnd.github.v3+json'}
+      headers:{'Authorization':'token '+CFG.token,'Accept':'application/vnd.github.v3+json',
+        'Cache-Control':'no-cache','Pragma':'no-cache'}  // force fresh response, no GitHub cache
     });
     if(!res.ok)return false;
     const data=await res.json();
     const file=data.files[GIST_FILE];
-    if(!file||!file.content)return true; // empty gist, that's ok
+    if(!file||!file.content)return true; // empty gist, ok
     const remote=JSON.parse(file.content);
     if(!remote||typeof remote!=='object')return true;
-    // Merge: remote wins (simple strategy — last write wins)
     const localTs=S._ts||0;
     const remoteTs=remote._ts||0;
-    if(remoteTs>localTs){
-      // Remote is newer — update local state
-      const dark=S.dark; // preserve local UI prefs
-      Object.assign(S,remote);
+    if(remoteTs >= localTs && remoteTs > 0){
+      // Remote is newer or equal — always apply remote data
+      const dark=S.dark;
+      S=Object.assign(S, remote);
       S.dark=dark;
-      save();
+      saveLocal(); // saveLocal only — not save() to avoid push loop
       // Re-render current page
       const activePage=document.querySelector('.page.active');
       if(activePage){
         const name=activePage.id.replace('page-','');
-        ({dashboard:renderDash,tasks:renderTasks,calendar:renderCal,shopping:renderShop,inventory:renderInv,contacts:renderContacts,history:renderHistory,stats:renderStats})[name]?.();
+        ({dashboard:renderDash,tasks:renderTasks,calendar:renderCal,shopping:renderShop,
+          inventory:renderInv,contacts:renderContacts,history:renderHistory,stats:renderStats})[name]?.();
       }
       renderNBadge();
     }
@@ -1312,7 +1322,7 @@ async function gistPush(){
       body
     });
     if(!res.ok)return false;
-    save(); // also save locally
+    saveLocal(); // saveLocal only — not save() to avoid recursion
     return true;
   }catch(e){return false;}
 }
