@@ -1280,35 +1280,37 @@ function apiUrl(url){
 async function gistPull(){
   if(!isConfigured())return false;
   try{
-    const res=await fetch(apiUrl(`https://api.github.com/gists/${CFG.gistId}`),{
-      headers:{'Authorization':'token '+CFG.token,'Accept':'application/vnd.github.v3+json',
-        'Cache-Control':'no-cache','Pragma':'no-cache'}  // force fresh response, no GitHub cache
-    });
-    if(!res.ok)return false;
-    const data=await res.json();
-    const file=data.files[GIST_FILE];
-    if(!file||!file.content)return true; // empty gist, ok
-    const remote=JSON.parse(file.content);
-    if(!remote||typeof remote!=='object')return true;
-    const localTs=S._ts||0;
-    const remoteTs=remote._ts||0;
+    // Use raw URL with cache-busting to bypass GitHub's aggressive Gist caching
+    const bust = Date.now();
+    const rawUrl = `https://gist.githubusercontent.com/raw/${CFG.gistId}/${GIST_FILE}?_=${bust}`;
+    const res = await fetch(rawUrl, {cache:'no-store'});
+    if(!res.ok){
+      // Fallback to API if raw fails (e.g. gist is empty)
+      if(res.status === 404) return true;
+      return false;
+    }
+    const text = await res.text();
+    if(!text || !text.trim()) return true; // empty gist, ok
+    let remote;
+    try{ remote = JSON.parse(text); }catch(e){ return false; }
+    if(!remote || typeof remote !== 'object') return true;
+    const localTs = S._ts || 0;
+    const remoteTs = remote._ts || 0;
     if(remoteTs >= localTs && remoteTs > 0){
-      // Remote is newer or equal — always apply remote data
-      const dark=S.dark;
-      S=Object.assign(S, remote);
-      S.dark=dark;
-      saveLocal(); // saveLocal only — not save() to avoid push loop
-      // Re-render current page
-      const activePage=document.querySelector('.page.active');
+      const dark = S.dark;
+      S = Object.assign(S, remote);
+      S.dark = dark;
+      saveLocal();
+      const activePage = document.querySelector('.page.active');
       if(activePage){
-        const name=activePage.id.replace('page-','');
+        const name = activePage.id.replace('page-','');
         ({dashboard:renderDash,tasks:renderTasks,calendar:renderCal,shopping:renderShop,
           inventory:renderInv,contacts:renderContacts,history:renderHistory,stats:renderStats})[name]?.();
       }
       renderNBadge();
     }
     return true;
-  }catch(e){return false;}
+  }catch(e){ return false; }
 }
 
 async function gistPush(){
@@ -1345,19 +1347,16 @@ async function syncNow(direction){
   return ok;
 }
 
-// Auto-sync every 30s
+// Auto-sync every 15s
 function startAutoSync(){
   stopAutoSync();
   syncState.timer=setInterval(async()=>{
     if(!isConfigured())return;
-    // Pull first to get remote changes
     const ok=await gistPull();
     if(ok){syncState.status='ok';syncState.lastSync=Date.now();}
     else{syncState.status='error';}
     updateSyncUI();
-  },30000);
-  // Also do an initial push+pull right away
-  syncNow('push');
+  },15000);
 }
 
 function stopAutoSync(){
@@ -1377,14 +1376,14 @@ if(checkLogin()){
   renderNBadge();
   updateSyncUI();
   if(isConfigured()){
-    gistPull().then(ok=>{
+    // Push local data first, then pull remote, then start auto-sync
+    gistPush().then(()=> gistPull()).then(ok=>{
       syncState.status=ok?'ok':'error';
       if(ok)syncState.lastSync=Date.now();
       updateSyncUI();
       startAutoSync();
     });
-  }
-  if(!isConfigured()){
+  } else {
     setTimeout(()=>{
       toast('👋 Configure la synchro dans ⚙️ Sync pour partager avec ton compagnon');
     }, 1500);
