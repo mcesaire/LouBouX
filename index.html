@@ -739,6 +739,7 @@ const SCATS={fruits:{l:'🥦 Frais'},epicerie:{l:'🥫 Épicerie'},boissons:{l:'
 const ICATS={alimentaire:'🍞 Alimentaire',hygiene:'🧴 Hygiène',menage:'🧹 Ménage',pharmacie:'💊 Pharmacie',autre:'📦 Autre'};
 const ec=cat=>(ECATS[cat]||ECATS.autre).c;
 
+
 // ── STATE ────────────────────────────────────────────────────
 let S={
   dark:false,
@@ -789,15 +790,19 @@ let S={
 S.tasks.filter(t=>t.done).forEach(t=>{S.history.push({taskId:t.id,taskName:t.name,catId:t.catId,doneDate:t.doneDate,note:t.doneNote});});
 
 function saveLocal(){try{localStorage.setItem('NM4',JSON.stringify(S));}catch(e){}}
-function save(){
+async function save(){
   saveLocal();
-  if(isConfigured()){
-    gistPush().then(ok=>{
-      syncState.status=ok?'ok':'error';
-      if(ok)syncState.lastSync=Date.now();
-      updateSyncUI();
-    });
-  }
+
+  if(!isConfigured()) return;
+  const remote = await gistPull();
+  const merged = { ...remote, ...S };
+  S = merged;
+  saveLocal();
+  const ok = await gistPush();
+
+  syncState.status = ok ? 'ok' : 'error';
+  if(ok) syncState.lastSync = Date.now();
+  updateSyncUI();
 }
 function load(){
   try{
@@ -805,7 +810,7 @@ function load(){
     if(s){
       const parsed=JSON.parse(s);
       // Full replace, not shallow merge — preserves arrays correctly
-      S=Object.assign(S, parsed);
+      S=parsed;
     }
   }catch(e){}
 }
@@ -868,16 +873,17 @@ function renderTasks(){
   let h='';
   if(pen.length)h+=`<div class="tgroup"><div class="tgtitle"><span>À faire (${pen.length})</span><div class="tgline"></div></div>${pen.map(tkCard).join('')}</div>`;
   if(dn.length)h+=`<div class="tgroup"><div class="tgtitle"><span>Faites (${dn.length})</span><div class="tgline"></div></div>${dn.map(tkCard).join('')}</div>`;
-  tl.innerHTML=h;
+  if(tl.innerHTML !== h) tl.innerHTML = h;
 }
 function tkCard(t){
   const cat=gc(t.catId);const d=t.due?dd(t.due):null;
   const db=(!t.done&&t.due)?(d<0?`<span class="ubadge uo">En retard</span>`:d===0?`<span class="ubadge ut">Aujourd'hui</span>`:d<=3?`<span class="ubadge us">Dans ${d}j</span>`:''):'';
   const pc={haute:'#fde8e8',normale:'var(--s2)',basse:'#e8f5e9'};const pt={haute:'#B85450',normale:'var(--t2)',basse:'#7A9E7E'};
+  const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   return `<div class="tcard ${t.done?'done':''}">
     <div class="tcheck ${t.done?'ck':''}" onclick="${t.done?'undoTk(\''+t.id+'\')':'openDone(\''+t.id+'\')'}">${t.done?'✓':''}</div>
     <div class="tbody"><div class="tname ${t.done?'dt':''}">${cat.icon} ${t.name} ${db}</div>
-    ${t.desc?`<div class="tdesc">${t.desc}</div>`:''}
+    ${t.desc?`<div class="tdesc">${esc(t.desc)}</div>`:''}
     <div class="tmeta"><span class="tag" style="background:${cat.color}20;color:${cat.color}">${cat.name}</span>
     ${t.rec?`<span class="tag" style="background:#e8f0fb;color:var(--a3)">🔁 ${t.rec}</span>`:''}
     ${t.due&&!t.done?`<span class="tag">📅 ${fd(t.due)}</span>`:''}
@@ -892,16 +898,19 @@ function undoTk(id){const t=S.tasks.find(t=>t.id===id);if(!t)return;t.done=false
 function openDone(id){S.pendDone=id;const t=S.tasks.find(t=>t.id===id);g('doneinfo').textContent='📋 '+t.name;g('done-date').value=td();g('done-note').value='';g('mdone').classList.add('open');}
 function closeDone(){g('mdone').classList.remove('open');S.pendDone=null;}
 function confirmDone(){const id=S.pendDone;const t=S.tasks.find(t=>t.id===id);const date=g('done-date').value||td();const note=g('done-note').value;t.done=true;t.doneDate=date;t.doneNote=note;S.history.unshift({taskId:t.id,taskName:t.name,catId:t.catId,doneDate:date,note});if(t.rec)nextRec(t);save();closeDone();renderTasks();renderNBadge();toast('✅ Tâche complétée');}
-function nextRec(t){const m={quotidien:1,hebdomadaire:7,mensuel:30,trimestriel:90,annuel:365};const d=m[t.rec];if(!d)return;const nd=new Date((t.doneDate||td())+'T12:00:00');nd.setDate(nd.getDate()+d);S.tasks.push({...t,id:uid(),done:false,doneDate:null,doneNote:'',due:nd.toISOString().slice(0,10)});}
+function nextRec(t){  const d=new Date((t.doneDate||td())+'T12:00:00');switch(t.rec){case 'quotidien': d.setDate(d.getDate()+1); break;case 'hebdomadaire': d.setDate(d.getDate()+7); break;case 'mensuel': d.setMonth(d.getMonth()+1); break;case 'trimestriel': d.setMonth(d.getMonth()+3); break;case 'annuel': d.setFullYear(d.getFullYear()+1); break;}  S.tasks.push({...t,id:uid(),done:false,doneDate:null,doneNote:'',due:d.toISOString().slice(0,10)});}
 function openTaskModal(id){S.eTkId=id||null;g('mtask-title').textContent=id?'Modifier':'Nouvelle tâche';g('tk-cat').innerHTML=S.cats.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');if(id){const t=S.tasks.find(t=>t.id===id);g('tk-name').value=t.name;g('tk-desc').value=t.desc||'';g('tk-cat').value=t.catId;g('tk-prio').value=t.prio;g('tk-date').value=t.due||'';g('tk-rec').value=t.rec||'';}else{['tk-name','tk-desc'].forEach(x=>g(x).value='');g('tk-prio').value='normale';g('tk-date').value='';g('tk-rec').value='';}g('mtask').classList.add('open');}
 function closeTkModal(){g('mtask').classList.remove('open');}
-function saveTk(){const name=g('tk-name').value.trim();if(!name){toast('⚠️ Nom requis');return;}const t={name,desc:g('tk-desc').value.trim(),catId:g('tk-cat').value,prio:g('tk-prio').value,due:g('tk-date').value,rec:g('tk-rec').value};if(S.eTkId){Object.assign(S.tasks.find(x=>x.id===S.eTkId),t);}else S.tasks.push({id:uid(),...t,done:false,doneDate:null,doneNote:''});save();closeTkModal();renderTasks();renderNBadge();toast(S.eTkId?'✏️ Modifiée':'✅ Ajoutée');}
+function upsert(arr, id, data){if(id){Object.assign(arr.find(x=>x.id===id), data);}else{arr.push({id:uid(), ...data});}}
+function saveTk(){const name=g('tk-name').value.trim();if(!name){toast('⚠️ Nom requis');return;}const t={name,desc:g('tk-desc').value.trim(),catId:g('tk-cat').value,prio:g('tk-prio').value,due:g('tk-date').value,rec:g('tk-rec').value};upsert(S.tasks, S.eTkId, {...t,done:false,doneDate:null,doneNote:''})
+
+;save();closeTkModal();renderTasks();renderNBadge();toast(S.eTkId?'✏️ Modifiée':'✅ Ajoutée');}
 function openCatModal(){renderCatList();g('mcat').classList.add('open');}
 function closeCatModal(){g('mcat').classList.remove('open');}
 function renderCatList(){g('catlist').innerHTML=S.cats.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><div style="width:14px;height:14px;border-radius:50%;background:${c.color};flex-shrink:0;"></div><span>${c.icon}</span><span style="flex:1;font-size:14px;font-weight:500;">${c.name}</span><button class="btn bsm bd" onclick="delCat('${c.id}')">🗑️</button></div>`).join('');}
 function selCol(el){document.querySelectorAll('#nc-colors .copt').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');S.selColor=el.dataset.c;}
 function addCat(){const name=g('nc-name').value.trim();if(!name){toast('⚠️ Nom requis');return;}S.cats.push({id:uid(),name,icon:g('nc-icon').value,color:S.selColor});g('nc-name').value='';save();renderCatList();renderTasks();toast('Catégorie ajoutée');}
-function delCat(id){if(S.tasks.some(t=>t.catId===id)){toast('⚠️ Des tâches utilisent cette catégorie');return;}S.cats=S.cats.filter(c=>c.id!==id);save();renderCatList();renderTasks();toast('Supprimée');}
+function delCat(id){if(S.tasks.some(t=>t.catId===id)){if(!confirm("Cette catégorie est utilisée. Les tâches seront déplacées vers 'Autre'. Continuer ?")) return;S.tasks.forEach(t=>{if(t.catId===id) t.catId='default';});}S.cats=S.cats.filter(c=>c.id!==id);save();renderCatList();renderTasks();toast('Supprimée');}
 
 // ── CALENDAR ─────────────────────────────────────────────────
 function renderCal(){
@@ -1128,11 +1137,10 @@ document.querySelectorAll('.moverlay').forEach(m=>m.addEventListener('click',e=>
 // ── LOGIN ────────────────────────────────────────────────────
 const PWD_KEY = 'NM4_pwd';
 
-function hashPwd(pwd){
-  // Simple hash — not cryptographic but sufficient for casual protection
-  let h = 0;
-  for(let i = 0; i < pwd.length; i++){h = Math.imul(31, h) + pwd.charCodeAt(i) | 0;}
-  return 'h' + Math.abs(h).toString(36);
+async function hashPwd(pwd){
+  const enc = new TextEncoder().encode(pwd);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
 }
 
 function checkLogin(){
@@ -1278,6 +1286,21 @@ function updateSyncUI(){
   }
 }
 
+async function syncFromGist() {
+  const res = await fetch("https://api.github.com/gists/TON_ID", {
+    headers: {
+      Authorization: "token TON_TOKEN"
+    }
+  });
+
+  const gist = await res.json();
+  const data = JSON.parse(gist.files["data.json"].content);
+
+  localStorage.setItem("tasks", JSON.stringify(data));
+
+  renderTasks();
+}
+
 // ── GIST API ─────────────────────────────────────────────────
 const syncState={status:'idle',lastSync:null,timer:null};
 const GIST_FILE='notre-maison.json';
@@ -1360,25 +1383,52 @@ async function gistPush(){
   }catch(e){return false;}
 }
 
-async function syncNow(direction){
+async function syncNow(direction) {
   if(!isConfigured()){toast("⚠️ Configure d'abord le Gist ID et le token");P('settings');return;}
   syncState.status='syncing';updateSyncUI();
   let ok=false;
-  if(direction==='push'||direction==='auto'){
-    ok=await gistPush();
-    if(ok&&direction==='push')toast('⬆️ Données envoyées !');
+  try {
+    // ─── PUSH ─────────────────────────────
+    if (direction === 'push' || direction === 'auto') {
+      const local = JSON.parse(localStorage.getItem("appData") || "{}");
+      const remote = await getFromGist();
+      const merged = mergeData(remote, local);
+
+      await saveToGist(merged);
+      ok = true;
+
+      if (direction === 'push') {
+        toast('⬆️ Données envoyées !');
+      }
+    }
+
+    // ─── PULL ─────────────────────────────
+    if (direction === 'pull') {
+      const remote = await getFromGist();
+
+      if (remote) {
+        localStorage.setItem("appData", JSON.stringify(remote));
+        renderAll();
+        ok = true;
+        toast('⬇️ Données récupérées !');
+      }
+    }
+  } catch (e) {
+    console.error("Erreur sync:", e);
+    ok = false;
   }
-  if(direction==='pull'){
-    ok=await gistPull();
-    if(ok)toast('⬇️ Données récupérées !');
-  }
-  syncState.status=ok?'ok':'error';
-  syncState.lastSync=ok?Date.now():syncState.lastSync;
+
+  syncState.status = ok ? 'ok' : 'error';
+  if (ok) syncState.lastSync = Date.now();
   updateSyncUI();
   return ok;
 }
 
 // Auto-sync every 15s
+window.addEventListener('load', () => {
+  syncNow('pull');
+});
+
 function startAutoSync(){
   stopAutoSync();
   syncState.timer=setInterval(async()=>{
