@@ -1,6 +1,6 @@
 {
-  "name": "Notre Maison",
-  "short_name": "Notre Maison",
+  "name": "LouBouX",
+  "short_name": "LouBouX",
   "description": "Gérez votre maison ensemble",
   "start_url": "./index.html",
   "display": "standalone",
