@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Notre Maison</title>
+<title>LouBouX</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C17B3C" id="theme-meta">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Notre Maison">
+<meta name="apple-mobile-web-app-title" content="LouBouX">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F5F0E8;--surface:#FDFAF4;--s2:#EDE8DC;--s3:#E4DDD0;--accent:#C17B3C;--a2:#7A9E7E;--a3:#5B7FA6;--text:#2C2416;--t2:#7A6E5F;--border:#D9D0C0;--done:#7A9E7E;--warn:#C17B3C;--danger:#B85450;--sh:0 2px 16px rgba(44,36,22,.08);--sh2:0 8px 32px rgba(44,36,22,.14);--r:16px;}
@@ -207,22 +207,6 @@ header{background:var(--surface);border-bottom:1.5px solid var(--border);padding
 .hinfo{flex:1;}.hname{font-weight:500;font-size:14px;}.hdate{font-size:12.5px;color:var(--t2);margin-top:2px;}
 .hcat{font-size:12px;padding:2px 9px;border-radius:20px;color:#fff;font-weight:500;}
 
-/* STATS */
-.stgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.stcard{background:var(--surface);border-radius:var(--r);padding:22px;border:1.5px solid var(--border);box-shadow:var(--sh);}
-.sttitle{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;}
-.bchart{display:flex;flex-direction:column;gap:10px;}
-.brow{display:flex;align-items:center;gap:10px;}
-.blabel{font-size:12.5px;width:90px;flex-shrink:0;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.btrack{flex:1;background:var(--s2);border-radius:99px;height:10px;overflow:hidden;}
-.bfill{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.4,0,.2,1);}
-.bcnt{font-size:12px;font-weight:600;color:var(--t2);width:24px;text-align:right;}
-.dwrap{display:flex;align-items:center;gap:16px;}
-.dleg{display:flex;flex-direction:column;gap:8px;}
-.dli{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--t2);}
-.dld{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-svg.donut{transform:rotate(-90deg);}
-
 /* NOTIF */
 .npanel{position:fixed;top:68px;right:16px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;width:300px;box-shadow:var(--sh2);z-index:200;overflow:hidden;display:none;}
 .npanel.open{display:block;animation:fi .2s ease;}
@@ -277,7 +261,7 @@ svg.donut{transform:rotate(-90deg);}
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">Notre <span>Maison</span> 🏠</div>
+    <div class="login-logo">Lou<span>BouX</span> 🏠</div>
     <div class="login-sub">Connecte-toi pour accéder à l'application</div>
     <div class="login-field">
       <input type="password" id="login-pwd" placeholder="Mot de passe…" onkeydown="if(event.key==='Enter')doLogin()"/>
@@ -290,7 +274,7 @@ svg.donut{transform:rotate(-90deg);}
 </div>
 
 <header>
-  <div class="logo">Notre <span>Maison</span> 🏠</div>
+  <div class="logo">Lou<span>BouX</span> 🏠</div>
   <nav class="nav-tabs">
     <button class="nav-tab active" onclick="P('dashboard')">Accueil</button>
     <button class="nav-tab" onclick="P('tasks')">Tâches</button>
@@ -299,7 +283,6 @@ svg.donut{transform:rotate(-90deg);}
     <button class="nav-tab" onclick="P('inventory')">Stocks</button>
     <button class="nav-tab" onclick="P('contacts')">Contacts</button>
     <button class="nav-tab" onclick="P('history')">Historique</button>
-    <button class="nav-tab" onclick="P('stats')">Stats</button>
     <button class="nav-tab" onclick="P('settings')">⚙️ Sync</button>
   </nav>
   <div class="hbtns">
@@ -457,12 +440,6 @@ svg.donut{transform:rotate(-90deg);}
       <select class="fsel" style="max-width:140px" id="hmthF" onchange="renderHistory()"><option value="">Tous les mois</option></select>
     </div>
     <div class="hlist" id="hlist"></div>
-  </div>
-
-  <!-- STATS -->
-  <div class="page" id="page-stats">
-    <div class="pt" style="margin-bottom:20px;">Statistiques</div>
-    <div class="stgrid" id="stgrid"></div>
   </div>
 
 
@@ -748,40 +725,12 @@ let S={
     {id:'c3',name:'Cuisine',icon:'🍳',color:'#5B7FA6'},{id:'c4',name:'Administratif',icon:'📄',color:'#8B6DB0'},
     {id:'c5',name:'Entretien',icon:'🔧',color:'#B85450'},
   ],
-  tasks:[
-    {id:'t1',name:"Passer l'aspirateur",desc:'Toutes les pièces',catId:'c1',prio:'haute',due:od(-1),rec:'hebdomadaire',done:false,doneDate:null,doneNote:''},
-    {id:'t2',name:'Arroser les plantes',desc:'',catId:'c2',prio:'normale',due:td(),rec:'hebdomadaire',done:false,doneDate:null,doneNote:''},
-    {id:'t3',name:'Faire les courses',desc:'Liste sur le frigo',catId:'c3',prio:'normale',due:od(2),rec:'hebdomadaire',done:false,doneDate:null,doneNote:''},
-    {id:'t4',name:"Déclaration d'impôts",desc:'',catId:'c4',prio:'haute',due:od(10),rec:'annuel',done:false,doneDate:null,doneNote:''},
-    {id:'t5',name:'Nettoyer les vitres',desc:'',catId:'c1',prio:'basse',due:od(-5),rec:'mensuel',done:true,doneDate:od(-5),doneNote:'Fait par les deux'},
-  ],
+  tasks:[],
   history:[],
-  events:[
-    {id:'e1',name:'Rendez-vous dentiste',desc:'Cabinet Dr. Martin',date:od(5),time:'14:30',cat:'medecin',who:'moi',rem:'1d'},
-    {id:'e2',name:'Révision chaudière',desc:'',date:od(12),time:'09:00',cat:'maison',who:'tous',rem:'3d'},
-    {id:'e3',name:'Anniversaire maman',desc:'Penser au cadeau !',date:od(20),time:'',cat:'perso',who:'tous',rem:'3d'},
-    {id:'e4',name:'Renouvellement assurance',desc:'',date:od(-10),time:'10:00',cat:'admin',who:'tous',rem:'1w'},
-  ],
-  shopItems:[
-    {id:'s1',name:'Lait',qty:'× 2',cat:'epicerie',ck:false},
-    {id:'s2',name:'Pain',qty:'',cat:'fruits',ck:false},
-    {id:'s3',name:'Savon',qty:'× 3',cat:'hygiene',ck:true},
-    {id:'s4',name:'Pâtes',qty:'× 2',cat:'epicerie',ck:false},
-  ],
-  inv:[
-    {id:'v1',name:'Lessive',icon:'🧴',cat:'menage',qty:2,min:1,unit:'unité(s)',notes:'Ariel'},
-    {id:'v2',name:'Papier toilette',icon:'🧻',cat:'menage',qty:0,min:4,unit:'rouleau(x)',notes:''},
-    {id:'v3',name:'Paracétamol',icon:'💊',cat:'pharmacie',qty:3,min:1,unit:'boîte(s)',notes:''},
-    {id:'v4',name:'Café',icon:'☕',cat:'alimentaire',qty:1,min:1,unit:'paquet(s)',notes:''},
-    {id:'v5',name:'Liquide vaisselle',icon:'🫧',cat:'menage',qty:2,min:1,unit:'bouteille(s)',notes:''},
-    {id:'v6',name:'Doliprane 1000',icon:'💊',cat:'pharmacie',qty:0,min:2,unit:'boîte(s)',notes:''},
-  ],
-  contacts:[
-    {id:'ct1',name:'Plombier Leblanc',role:'Plombier',tel:'06 12 34 56 78',email:'',cat:'artisan',icon:'🌊',addr:'',notes:'Rapide et fiable, disponible le week-end'},
-    {id:'ct2',name:'Dr. Rousseau',role:'Médecin traitant',tel:'01 23 45 67 89',email:'cabinet@rousseau.fr',cat:'sante',icon:'👨‍⚕️',addr:'12 rue de la Santé, Paris',notes:''},
-    {id:'ct3',name:'Électricien Martin',role:'Électricien',tel:'06 98 76 54 32',email:'',cat:'artisan',icon:'⚡',addr:'',notes:'Devis gratuit'},
-    {id:'ct4',name:'SAMU / Urgences',role:'Urgences médicales',tel:'15 / 18 / 112',email:'',cat:'urgence',icon:'🚨',addr:'',notes:''},
-  ],
+  events:[],
+  shopItems:[],
+  inv:[],
+  contacts:[],
   filterCat:'all',
   eTkId:null,eEvId:null,eInvId:null,eCtId:null,pendDone:null,
   selColor:'#C17B3C',
@@ -824,9 +773,9 @@ function P(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   g('page-'+name).classList.add('active');
-  const tabs=['dashboard','tasks','calendar','shopping','inventory','contacts','history','stats','settings'];
+  const tabs=['dashboard','tasks','calendar','shopping','inventory','contacts','history', 'settings'];
   document.querySelectorAll('.nav-tab')[tabs.indexOf(name)]?.classList.add('active');
-  ({dashboard:renderDash,tasks:renderTasks,calendar:renderCal,shopping:renderShop,inventory:renderInv,contacts:renderContacts,history:renderHistory,stats:renderStats,settings:renderSettings})[name]?.();
+  ({dashboard:renderDash,tasks:renderTasks,calendar:renderCal,shopping:renderShop,inventory:renderInv,contacts:renderContacts,history:renderHistory,settings:renderSettings})[name]?.();
   closeNotif();
 }
 
@@ -1070,28 +1019,6 @@ function renderHistory(){
   hl.innerHTML=hist.map(h=>{const cat=gc(h.catId);return`<div class="hcard"><div class="hck">✓</div><div class="hinfo"><div class="hname">${h.taskName}</div><div class="hdate">Fait le ${fd(h.doneDate)}${h.note?' · '+h.note:''}</div></div><span class="hcat" style="background:${cat.color}">${cat.icon} ${cat.name}</span></div>`;}).join('');
 }
 
-// ── STATS ────────────────────────────────────────────────────
-function renderStats(){
-  const el=g('stgrid');
-  const byCat=S.cats.map(c=>({...c,total:S.tasks.filter(t=>t.catId===c.id).length})).filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
-  const mx=Math.max(...byCat.map(c=>c.total),1);
-  const cBars=byCat.map(c=>`<div class="brow"><div class="blabel">${c.icon} ${c.name}</div><div class="btrack"><div class="bfill" style="width:${(c.total/mx)*100}%;background:${c.color}"></div></div><div class="bcnt">${c.total}</div></div>`).join('');
-  const md=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);const m=d.toISOString().slice(0,7);md.push({label:d.toLocaleDateString('fr-FR',{month:'short'}),count:S.history.filter(h=>h.doneDate?.startsWith(m)).length});}
-  const mxM=Math.max(...md.map(m=>m.count),1);
-  const mBars=md.map(m=>`<div class="brow"><div class="blabel">${m.label}</div><div class="btrack"><div class="bfill" style="width:${(m.count/mxM)*100}%;background:var(--a3)"></div></div><div class="bcnt">${m.count}</div></div>`).join('');
-  const pd=[{label:'Haute',color:'#B85450',count:S.tasks.filter(t=>t.prio==='haute').length},{label:'Normale',color:'#C4A84F',count:S.tasks.filter(t=>t.prio==='normale').length},{label:'Basse',color:'#7A9E7E',count:S.tasks.filter(t=>t.prio==='basse').length}];
-  const tP=pd.reduce((s,p)=>s+p.count,0)||1;let ca=0;const r=40,cx=50,cy=50;
-  const dp=pd.map(p=>{const pct=p.count/tP;if(!pct)return'';const a=pct*2*Math.PI;const x1=cx+r*Math.cos(ca),y1=cy+r*Math.sin(ca);ca+=a;const x2=cx+r*Math.cos(ca),y2=cy+r*Math.sin(ca);return`<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${r},${r} 0 ${pct>.5?1:0},1 ${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${p.color}" opacity="0.85"/>`;}).join('');
-  const dl=pd.map(p=>`<div class="dli"><div class="dld" style="background:${p.color}"></div>${p.label} (${p.count})</div>`).join('');
-  const cr=S.tasks.length?Math.round((S.tasks.filter(t=>t.done).length/S.tasks.length)*100):0;
-  const sa=(S.inv||[]).filter(i=>ist(i)!=='ok').length;
-  el.innerHTML=`
-    <div class="stcard" style="grid-column:1/-1"><div class="sttitle">Tâches par catégorie</div><div class="bchart">${cBars||'<div style="color:var(--t2);font-size:13px;">Aucune donnée</div>'}</div></div>
-    <div class="stcard"><div class="sttitle">Complétées / 6 mois</div><div class="bchart">${mBars}</div></div>
-    <div class="stcard"><div class="sttitle">Priorités</div><div class="dwrap"><svg class="donut" width="90" height="90" viewBox="0 0 100 100">${dp}</svg><div class="dleg">${dl}</div></div><div style="margin-top:14px;font-size:13px;color:var(--t2);">Complétion : <strong style="color:var(--text)">${cr}%</strong></div></div>
-    <div class="stcard"><div class="sttitle">Alertes stocks</div><div class="sval" style="color:${sa>0?'var(--warn)':'var(--done)'}">${sa}</div><div style="font-size:13px;color:var(--t2);margin-top:4px;">produit(s) à réapprovisionner</div></div>`;
-}
-
 // ── NOTIFICATIONS ────────────────────────────────────────────
 function getNotifs(){
   const tn=S.tasks.filter(t=>!t.done&&t.due).map(t=>{const d=dd(t.due);if(d<0)return{n:t.name,l:`En retard de ${Math.abs(d)}j`,i:'📋'};if(d===0)return{n:t.name,l:"À faire aujourd'hui",i:'📋'};if(d<=3)return{n:t.name,l:`Dans ${d}j`,i:'📋'};return null;}).filter(Boolean);
@@ -1303,7 +1230,7 @@ async function syncFromGist() {
 
 // ── GIST API ─────────────────────────────────────────────────
 const syncState={status:'idle',lastSync:null,timer:null};
-const GIST_FILE='notre-maison.json';
+const GIST_FILE='LouBouX.json';
 
 // Use CORS proxy when running from file://
 const IS_FILE = location.protocol === 'file:';
